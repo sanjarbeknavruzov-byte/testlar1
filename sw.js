@@ -1,5 +1,5 @@
 /* Har safar savollar yoki kod o'zgarganda VERSION raqamini oshiring */
-const VERSION = "v1";
+const VERSION = "v3";
 const FILES = ["./", "index.html", "app.js", "lic.js", "questions.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k))))); self.clients.claim(); });

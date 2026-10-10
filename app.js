@@ -9,7 +9,21 @@ function openSubject(s){
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e){} }
 
 let cfg = {mode:"mashq", topics:new Set(), count:20, timed:false};
-let run = null, tick = null;
+let run = null, tick = null, screen = "";
+let armed = false;
+function arm(){ if (!armed) { try { history.pushState({tt:1}, ""); armed = true; } catch(e){} } }
+function handleBack(){
+  if (run) {
+    if (run.pos > 0) { run.pos--; show(); return true; }
+    if (confirm("Test to‘xtatilsinmi? Javoblar hisoblanmaydi.")) { clearInterval(tick); run = null; home(); }
+    else show();
+    return true;
+  }
+  if (screen === "result") { home(); return true; }
+  if (screen === "home" && SUBJECTS.length > 1) { subjects(); return true; }
+  return false;
+}
+addEventListener("popstate", () => { armed = false; if (handleBack() && screen !== "subjects") arm(); });
 const app = document.getElementById("app");
 const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -20,6 +34,7 @@ function pool(){
 }
 
 function home(){
+  screen = "home"; if (SUBJECTS.length > 1) arm();
   clearInterval(tick);
   const nW = store.wrong.length;
   if (cfg.mode === "xato" && !nW) cfg.mode = "mashq";
@@ -87,6 +102,7 @@ function pillClass(it, k){
 }
 
 function show(){
+  screen = "quiz"; arm();
   const it = run.items[run.pos], q = Q[it.i], total = run.items.length;
   const answered = it.pick!=null, practice = run.mode!=="imtihon";
   const L = "ABCD";
@@ -109,7 +125,7 @@ function show(){
     }).join("")}</div>
     ${practice&&answered?`<div class="fb ${it.pick===q.a?"ok":"bad"}" role="status">${it.pick===q.a?"To‘g‘ri":"Noto‘g‘ri. To‘g‘ri javob: "+esc(q.a)}</div>`:""}
     <button class="primary" id="next" ${answered?"":"disabled"}>${run.pos+1<total?"Keyingi savol":"Natijani ko‘rish"}</button>
-    ${run.mode==="imtihon"&&run.pos>0?`<button class="ghost" id="prev">Oldingi savol</button>`:""}`;
+    ${run.pos>0?`<button class="ghost" id="prev">‹ Oldingi savol</button>`:""}`;
   updTimer();
   app.querySelectorAll(".opt").forEach(b => b.onclick = () => {
     it.pick = it.opts[+b.dataset.k];
@@ -117,7 +133,7 @@ function show(){
     show();
   });
   document.getElementById("next").onclick = () => { if (run.pos+1<total){ run.pos++; show(); window.scrollTo(0,0);} else finish(); };
-  const pv = document.getElementById("prev"); if (pv) pv.onclick = () => { run.pos--; show(); };
+  const pv = document.getElementById("prev"); if (pv) pv.onclick = () => { run.pos--; show(); window.scrollTo(0,0); };
   document.getElementById("quit").onclick = () => { if (confirm("Test to‘xtatilsinmi? Javoblar hisoblanmaydi.")) { run=null; home(); } };
 }
 
@@ -130,6 +146,7 @@ function mark(it){
 function grade(p){ return p>=86?"A’lo (5)":p>=71?"Yaxshi (4)":p>=56?"Qoniqarli (3)":"Qoniqarsiz (2)"; }
 
 function finish(){
+  screen = "result"; arm();
   clearInterval(tick);
   if (run.mode==="imtihon") run.items.forEach(it => { if (it.pick!=null) mark(it); else { const w=new Set(store.wrong); w.add(it.i); store.wrong=[...w]; } });
   const total = run.items.length, right = run.items.filter(it => it.pick===Q[it.i].a).length;
@@ -203,6 +220,7 @@ function lockScreen(msg){
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredInstall=e; const b=document.getElementById("inst"); if(b) b.hidden=false; });
 function subjects(){
+  screen = "subjects";
   if(SUBJECTS.length===1) return openSubject(SUBJECTS[0]);
   app.innerHTML=`<h1>Fanlar</h1><p class="sub">Fanni tanlang.</p>
     <div class="modes">${SUBJECTS.map((s,i)=>`<button class="mode" data-s="${i}"><span class="ic">${i+1}</span><div><b>${esc(s.name)}</b><span>${s.q.length} ta savol</span></div></button>`).join("")}</div>
